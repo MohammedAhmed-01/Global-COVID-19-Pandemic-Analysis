@@ -1,5 +1,22 @@
-dash>=2.17.0
-dash-bootstrap-components>=1.5.0
-plotly>=5.22.0
-pandas>=2.1.0
-numpy>=1.26.0
+# Core Data Processing
+pandas>=2.1.0,<3.0
+numpy>=1.26.0,<2.0
+python-dateutil>=2.8.2
+
+# Visualization & Dashboard
+plotly>=5.22.0,<6.0
+dash>=2.17.0,<3.0
+dash-bootstrap-components>=1.5.0,<2.0
+
+# Production Deployment
+gunicorn>=21.0.0,<22.0
+
+# Development & Analysis
+jupyter>=1.0.0,<2.0
+ipython>=8.0.0,<9.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Optional: Enhanced analysis (recommended for future features)
+scipy>=1.11.0
+scikit-learn>=1.3.0
