@@ -295,8 +295,15 @@ def _parse_store(store_json, continents, metric, view, top_n):
     try:
         df = pd.read_json(io.StringIO(store_json))
         df = _ensure_columns(df)
+        
+        # Ensure continent column is string type
+        if "continent" in df.columns:
+            df["continent"] = df["continent"].astype(str).str.strip()
+        
         continents = _ensure_continents_list(continents)
-        if continents:
+        if continents and "continent" in df.columns:
+            # Convert continents list to list of strings
+            continents = [str(c).strip() for c in continents]
             df = df[df["continent"].isin(continents)]
         
         df["_display"] = _get_display(df, metric, view)
@@ -309,6 +316,8 @@ def _parse_store(store_json, continents, metric, view, top_n):
         return df, top_df, mlabel
     except Exception as e:
         print(f"Error in _parse_store: {e}")
+        import traceback
+        traceback.print_exc()
         return None, None, None
 
 
@@ -924,9 +933,16 @@ def update_comparisons(store_json, continents, view):
             return [_empty_fig()] * 4
         df = pd.read_json(io.StringIO(store_json))
         df = _ensure_columns(df)
+        
+        # Ensure continent column is string type
+        if "continent" in df.columns:
+            df["continent"] = df["continent"].astype(str).str.strip()
+        
         continents = _ensure_continents_list(continents)
-        if continents:
-            df = df[df["continent"].isin(continents)]
+        if continents and "continent" in df.columns:
+            # Convert continents list to list of strings
+            continents_list = [str(c).strip() for c in continents]
+            df = df[df["continent"].isin(continents_list)]
 
         # Only Cases + Vaccinations (no Deaths)
         STACK_METRICS_STACKED   = {}
@@ -994,6 +1010,8 @@ def update_comparisons(store_json, continents, view):
         return fig_sc, fig_sb, fig_cc, fig_cb
     except Exception as e:
         print(f"Error in update_comparisons: {e}")
+        import traceback
+        traceback.print_exc()
         return [_empty_fig()] * 4
 
 
@@ -1005,9 +1023,16 @@ def update_table(store_json, continents, metric, view, search):
         return [], []
     df = pd.read_json(io.StringIO(store_json))
     df = _ensure_columns(df)
+    
+    # Ensure continent column is string type
+    if "continent" in df.columns:
+        df["continent"] = df["continent"].astype(str).str.strip()
+    
     continents = _ensure_continents_list(continents)
-    if continents:
-        df = df[df["continent"].isin(continents)]
+    if continents and "continent" in df.columns:
+        # Convert continents list to list of strings
+        continents_list = [str(c).strip() for c in continents]
+        df = df[df["continent"].isin(continents_list)]
     if search:
         df = df[df["location"].str.contains(search, case=False, na=False)]
     want = [c for c in ["location", "continent", "total_cases", "total_deaths",
@@ -1039,6 +1064,17 @@ def update_table(store_json, continents, metric, view, search):
 # REGISTER CALLBACKS
 # ══════════════════════════════════════════════════════════════════════════════
 def register_callbacks(app):
+
+    # ── AUTO-LOAD DATA ON PAGE LOAD ───────────────────────────────────────────
+    @app.callback(
+        Output("btn-load", "n_clicks"),
+        Input("interval-autoload", "n_intervals"),
+    )
+    def auto_load_on_startup(n_intervals):
+        """Auto-load data when page loads (triggered by interval)"""
+        if n_intervals and n_intervals >= 1:
+            return 1  # Trigger the load button once
+        return no_update
 
     # ── CB-LOAD ───────────────────────────────────────────────────────────────
     @app.callback(
@@ -1094,8 +1130,15 @@ def register_callbacks(app):
             return None
         df = pd.read_json(io.StringIO(store_json))
         df = _ensure_columns(df)
+        
+        # Ensure continent column is string type
+        if "continent" in df.columns:
+            df["continent"] = df["continent"].astype(str).str.strip()
+        
         continents = _ensure_continents_list(continents)
-        if continents:
+        if continents and "continent" in df.columns:
+            # Convert continents list to list of strings
+            continents = [str(c).strip() for c in continents]
             df = df[df["continent"].isin(continents)]
         return df
 
@@ -1105,7 +1148,14 @@ def register_callbacks(app):
         Input("store-country", "data"), Input("dd-continent", "value"),
         Input("dd-metric", "value"), Input("radio-view", "value"), Input("slider-topn", "value"),
     )
-    def cb_overview(s, c, m, v, n): return update_overview(s, c, m, v, n)
+    def cb_overview(s, c, m, v, n):
+        try:
+            return update_overview(s, c, m, v, n)
+        except Exception as e:
+            print(f"Error in cb_overview: {e}")
+            import traceback
+            traceback.print_exc()
+            return _empty_fig(), _empty_fig()
 
     # ── M5 Comparisons ────────────────────────────────────────────────────────
     @app.callback(
@@ -1113,7 +1163,14 @@ def register_callbacks(app):
         Output("chart-cluster-col", "figure"), Output("chart-cluster-bar", "figure"),
         Input("store-country", "data"), Input("dd-continent", "value"), Input("radio-view", "value"),
     )
-    def cb_comparisons(s, c, v): return update_comparisons(s, c, v)
+    def cb_comparisons(s, c, v):
+        try:
+            return update_comparisons(s, c, v)
+        except Exception as e:
+            print(f"Error in cb_comparisons: {e}")
+            import traceback
+            traceback.print_exc()
+            return [_empty_fig()] * 4
 
     # ── M3 Top N ──────────────────────────────────────────────────────────────
     @app.callback(
@@ -1254,7 +1311,15 @@ def register_callbacks(app):
             raise PreventUpdate
         df = pd.read_json(io.StringIO(s))
         df = _ensure_columns(df)
-        if c:
-            df = df[df["continent"].isin(c)]
+        
+        # Ensure continent column is string type
+        if "continent" in df.columns:
+            df["continent"] = df["continent"].astype(str).str.strip()
+        
+        c = _ensure_continents_list(c)
+        if c and "continent" in df.columns:
+            # Convert continents list to list of strings
+            c_list = [str(x).strip() for x in c]
+            df = df[df["continent"].isin(c_list)]
         return dcc.send_data_frame(df.to_csv, "covid19_filtered.csv",
                                    index=False, encoding="utf-8-sig")

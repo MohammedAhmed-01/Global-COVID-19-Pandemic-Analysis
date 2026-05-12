@@ -72,6 +72,7 @@ def build_layout():
             dcc.Store(id="store-country"),
             dcc.Store(id="store-timeseries"),
             dcc.Store(id="store-cont-ts"),
+            dcc.Interval(id="interval-autoload", interval=1000, max_intervals=1),
 
             # HEADER
             html.Div(style={
